@@ -1,15 +1,10 @@
 // ==UserScript==
 // @name         Costco Unit Price Comparator
-// @namespace    https://github.com/runongirlrunon/userscripts
-// @version      1.0.0
-// @description  Calculates normalized unit prices on Costco search results and highlights the cheapest and second-cheapest products within each comparable unit type.
-// @author       Lindsey Anne
+// @namespace    lindsey.unitprice.costco
+// @version      1.0.3
+// @description  Shows normalized unit prices on Costco and highlights the cheapest and second-cheapest search results.
 // @match        https://www.costco.com/*
 // @match        https://sameday.costco.com/*
-// @homepageURL  https://github.com/runongirlrunon/userscripts
-// @supportURL   https://github.com/runongirlrunon/userscripts/issues
-// @downloadURL  https://raw.githubusercontent.com/runongirlrunon/userscripts/main/costco/costco-unit-price.user.js
-// @updateURL    https://raw.githubusercontent.com/runongirlrunon/userscripts/main/costco/costco-unit-price.user.js
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
@@ -293,6 +288,88 @@
     }
 
     /******************************************************************
+     * COUNT PARSER
+     ******************************************************************/
+
+    function extractCountInfo(text) {
+        const t =
+            cleanText(text).toLowerCase();
+
+        const candidates = [];
+
+        /*
+         * 5 dozen
+         * 5 dozen-count
+         *
+         * Costco uses this wording for larger egg packages. Normalize
+         * dozens directly to individual items.
+         */
+        for (const m of t.matchAll(
+            /\b(\d+(?:\.\d+)?)\s*dozen(?:\s*-?\s*count)?\b/gi
+        )) {
+            candidates.push({
+                amount: Number(m[1]) * 12,
+                source: m[0],
+                priority: 4,
+            });
+        }
+
+        /*
+         * Explicit "count" is more trustworthy than abbreviated "ct".
+         * Costco sometimes injects a stray UI value such as "1 ct" into
+         * card text even when the product title says "24-count".
+         */
+        for (const m of t.matchAll(
+            /\b(\d+)\s*-?\s*count\b/gi
+        )) {
+            candidates.push({
+                amount: Number(m[1]),
+                source: m[0],
+                priority: 3,
+            });
+        }
+
+        for (const m of t.matchAll(
+            /\b(\d+)\s*-?\s*(?:pack|pk)\b/gi
+        )) {
+            candidates.push({
+                amount: Number(m[1]),
+                source: m[0],
+                priority: 2,
+            });
+        }
+
+        for (const m of t.matchAll(
+            /\b(\d+)\s*-?\s*ct\b/gi
+        )) {
+            candidates.push({
+                amount: Number(m[1]),
+                source: m[0],
+                priority: 1,
+            });
+        }
+
+        if (!candidates.length) {
+            return null;
+        }
+
+        /*
+         * Prefer the strongest wording. If Costco exposes multiple values
+         * at the same confidence level, prefer the larger count so a stray
+         * "1 ct" UI badge cannot override a real "24 ct" package size.
+         */
+        candidates.sort((a, b) => {
+            if (a.priority !== b.priority) {
+                return b.priority - a.priority;
+            }
+
+            return b.amount - a.amount;
+        });
+
+        return candidates[0];
+    }
+
+    /******************************************************************
      * PACKAGE PARSER
      ******************************************************************/
 
@@ -302,6 +379,9 @@
 
         const liquid =
             isLikelyLiquid(t);
+
+        const countInfo =
+            extractCountInfo(t);
 
         const unitPattern =
             '(fl\\s*oz|oz|lbs?|lb|kg|g|ml|liters?|litres?|l|gallons?|gal)';
@@ -472,12 +552,6 @@
             };
         }
 
-        const counts = [
-            ...t.matchAll(
-                /\b(\d+)\s*-?\s*(?:count|ct|pack|pk)\b/gi
-            ),
-        ];
-
         const fluidSizes = [
             ...t.matchAll(
                 /\b(\d+(?:\.\d+)?)\s*fl\s*oz\b/gi
@@ -485,15 +559,11 @@
         ];
 
         if (
-            counts.length &&
+            countInfo &&
             fluidSizes.length
         ) {
             const count =
-                Number(
-                    counts[
-                        counts.length - 1
-                    ][1]
-                );
+                countInfo.amount;
 
             const size =
                 Number(
@@ -510,7 +580,7 @@
                     'floz',
 
                 source:
-                    `${count} x ${size} fl oz`,
+                    `${countInfo.source} x ${size} fl oz`,
             };
         }
 
@@ -622,21 +692,16 @@
             };
         }
 
-        if (counts.length) {
-            const m =
-                counts[
-                    counts.length - 1
-                ];
-
+        if (countInfo) {
             return {
                 amount:
-                    Number(m[1]),
+                    countInfo.amount,
 
                 unit:
                     'each',
 
                 source:
-                    m[0],
+                    countInfo.source,
             };
         }
 
@@ -692,38 +757,56 @@
 
     function isInsideSponsoredModule(card) {
         /*
-         * A search result itself can say "Sponsored". Exclude it from
-         * ranking so paid placement cannot win merely because it appears
-         * in the normal result grid.
-         */
-        if (/\bsponsored\b/i.test(cleanText(card.innerText))) {
-            return true;
-        }
-
-        /*
-         * Costco also inserts larger sponsored modules containing several
-         * product cards. Look only a few ancestors upward and only treat a
-         * reasonably small multi-card container as an ad module; this avoids
-         * accidentally rejecting the entire results page because some other
-         * result elsewhere is sponsored.
+         * Costco inserts larger sponsored merchandising modules directly
+         * between normal search-result rows. Those modules contain ordinary
+         * [data-item-card="true"] cards, so simply collecting every card
+         * after the Results heading is not enough.
+         *
+         * Important: an individual search result can itself be marked
+         * "Sponsored". That is still a real search result and should keep
+         * its unit-price badge. We therefore look for a standalone
+         * "Sponsored" label that belongs to an ancestor container but is
+         * NOT inside any product card.
          */
         let ancestor = card.parentElement;
 
-        for (let depth = 0; ancestor && depth < 7; depth += 1) {
-            const cardCount =
-                ancestor.querySelectorAll(
+        for (let depth = 0; ancestor && depth < 8; depth += 1) {
+            const cards = [
+                ...ancestor.querySelectorAll(
                     '[data-item-card="true"]'
-                ).length;
+                ),
+            ];
 
-            const text =
-                cleanText(ancestor.innerText);
+            /*
+             * A sponsored merchandising block normally contains a handful
+             * of product cards. Once the ancestor gets large enough to be a
+             * substantial chunk of the page, stop treating it as a candidate
+             * module so a Sponsored label elsewhere cannot poison the whole
+             * results area.
+             */
+            if (cards.length > 1 && cards.length <= 10) {
+                const hasModuleSponsoredLabel = [
+                    ...ancestor.querySelectorAll('*'),
+                ].some(el => {
+                    if (
+                        cleanText(el.innerText) !==
+                        'Sponsored'
+                    ) {
+                        return false;
+                    }
 
-            if (
-                cardCount > 1 &&
-                cardCount <= 8 &&
-                /\bsponsored\b/i.test(text)
-            ) {
-                return true;
+                    /*
+                     * Sponsored text inside a product card belongs to that
+                     * individual result, not to the surrounding module.
+                     */
+                    return !el.closest(
+                        '[data-item-card="true"]'
+                    );
+                });
+
+                if (hasModuleSponsoredLabel) {
+                    return true;
+                }
             }
 
             ancestor = ancestor.parentElement;
