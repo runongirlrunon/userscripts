@@ -1,35 +1,72 @@
-# Userscripts
+# userscripts
 
-A collection of userscripts I use to make various websites less annoying.
+A small collection of browser tweaks and userscripts for making websites less annoying and more useful.
+
+Most of these started as one-off fixes for sites I use regularly and turned into scripts worth keeping around.
 
 ## Scripts
 
-### Costco Unit Price Comparator
+### Costco
 
-Adds normalized unit prices to Costco search results and highlights the cheapest and second-cheapest options within comparable unit types.
+**Unit Price Comparator**
 
-Supports comparisons such as:
+Adds normalized unit pricing to Costco product listings so products are easier to compare across different package sizes and formats.
 
-- price per fluid ounce
-- price per pound
-- price per item/count
+Highlights useful category winners such as:
 
-Weight, volume, and count-based products are ranked separately so unlike products aren't compared against each other.
+* Cheapest overall
+* Cheapest liquid
+* Cheapest powder
+* Cheapest pack, where applicable
 
-[Install Costco Unit Price Comparator](https://raw.githubusercontent.com/runongirlrunon/userscripts/main/costco/costco-unit-price.user.js)
+### LinkedIn
+
+**Compact Messaging**
+
+CSS overrides for LinkedIn Messaging that reduce wasted space and make better use of the browser window.
+
+Changes include:
+
+* Full-width messaging layout
+* Less padding and vertical whitespace
+* More compact conversation list
+* Smaller message composer
+* More messages visible on screen at once
+
+### Instacart
+
+**Unit Price Comparator**
+
+Adds normalized unit pricing to Instacart listings to make comparing products by actual quantity easier.
+
+This one is still a work in progress.
 
 ## Installation
 
-Install a userscript manager such as:
+JavaScript files ending in `.user.js` are intended for a userscript manager such as:
 
-- Tampermonkey
-- Violentmonkey
-- Userscripts for Safari
+* Userscripts for Safari
+* Tampermonkey
+* Violentmonkey
 
-Then click the install link for the script you want.
+CSS-only tweaks can be installed using a browser extension or other tool that supports custom per-site CSS.
 
-## Notes
+See the README inside each script directory for site-specific installation instructions and notes.
 
-These scripts are personal utilities and may break when the websites they modify change their markup.
+## Compatibility
 
-Bug reports and fixes are welcome.
+These scripts modify sites I do not control.
+
+Costco, LinkedIn, Instacart, and other sites can change their markup at any time, which may break selectors or behavior. If something stops working, it probably needs an update rather than an exorcism.
+
+## Contributing
+
+This is primarily a personal collection, but bug reports and useful fixes are welcome.
+
+If reporting a broken script, including the affected page, browser, and a screenshot or relevant DOM snippet will make debugging much easier.
+
+## License
+
+Licensed under the GNU General Public License v3.0.
+
+See [LICENSE](LICENSE) for details.

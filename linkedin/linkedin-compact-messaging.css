@@ -1,0 +1,201 @@
+/*
+ * LinkedIn Compact Messaging
+ * Part of: https://github.com/runongirlrunon/userscripts
+ *
+ * Makes LinkedIn Messaging use more of the available browser width
+ * and reduces excessive padding, margins, and vertical whitespace.
+ *
+ * Author: runongirlrunon
+ */
+
+
+/* ==========================================================================
+   LinkedIn Compact Messaging
+   ========================================================================== */
+
+
+/* --------------------------------------------------------------------------
+   Layout: Full-Width Messaging
+   -------------------------------------------------------------------------- */
+
+html,
+body,
+#voyager-feed,
+.application-outlet,
+.authentication-outlet,
+.scaffold-layout,
+.scaffold-layout__inner,
+.scaffold-layout__content,
+.msg,
+.msg.scaffold-layout,
+main.msg__list-detail {
+    max-width: none !important;
+}
+
+.msg.scaffold-layout,
+.msg .scaffold-layout__inner,
+.msg .scaffold-layout__content,
+main.msg__list-detail {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.msg.scaffold-layout {
+    left: 0 !important;
+    right: 0 !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   Layout: Outer Spacing
+   -------------------------------------------------------------------------- */
+
+.msg .scaffold-layout__content,
+.msg__list-detail,
+.msg-thread,
+.msg-thread__messages,
+.msg-s-message-list,
+.msg-s-message-list-content,
+.msg-s-message-list__scrollable {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   Thread Header
+   -------------------------------------------------------------------------- */
+
+.msg-thread__topcard,
+.msg-thread__topcard-wrapper,
+.msg-thread__topcard-background,
+.msg-thread__topcard-content,
+.msg-thread__topcard-summary,
+.msg-thread__topcard-profile,
+.msg-thread__topcard-info,
+.msg-overlay-conversation-bubble__header,
+.msg-title-bar {
+    min-height: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   Message List
+   -------------------------------------------------------------------------- */
+
+.msg-s-event-listitem,
+.msg-s-message-list__event,
+.msg-s-message-group,
+.msg-s-message-group__meta,
+.msg-s-message-group__profile-link,
+.msg-s-message-group__name,
+.msg-s-message-group__timestamp,
+.msg-s-event-listitem__message-bubble,
+.msg-s-event-listitem__body,
+.msg-s-event-listitem__message-bubble p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.msg-s-event-listitem,
+.msg-s-message-list__event {
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+}
+
+.msg-s-message-group {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+.msg-s-event-listitem__message-bubble,
+.msg-s-event-listitem__body {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 1.25 !important;
+}
+
+.msg-s-event-listitem__message-bubble p {
+    line-height: 1.25 !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   Message Composer
+   -------------------------------------------------------------------------- */
+
+.msg-form,
+.msg-form__contenteditable,
+.msg-form__contenteditable-wrapper,
+.msg-form__footer,
+.msg-form__left-actions,
+.msg-form__right-actions {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+.msg-form__contenteditable-wrapper {
+    min-height: 36px !important;
+}
+
+.msg-form__contenteditable {
+    min-height: 28px !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   Conversation Sidebar
+   -------------------------------------------------------------------------- */
+
+.msg-conversations-container__conversations-list,
+.msg-conversation-listitem,
+.msg-conversation-listitem__link,
+.msg-conversation-card,
+.msg-conversation-card__content,
+.msg-conversation-card__row {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.msg-conversation-listitem__link,
+.msg-conversation-card {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+    min-height: 0 !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   LinkedIn Utility Spacing Overrides
+   -------------------------------------------------------------------------- */
+
+.msg .pt4,
+.msg .pt3,
+.msg .pt2 {
+    padding-top: 2px !important;
+}
+
+.msg .pb4,
+.msg .pb3,
+.msg .pb2 {
+    padding-bottom: 2px !important;
+}
+
+.msg .mt4,
+.msg .mt3,
+.msg .mt2 {
+    margin-top: 2px !important;
+}
+
+.msg .mb4,
+.msg .mb3,
+.msg .mb2 {
+    margin-bottom: 2px !important;
+}
