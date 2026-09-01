@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Costco Unit Price Comparator
 // @namespace    lindsey.unitprice.costco
-// @version      1.0.3
+// @version      1.1.1
 // @description  Shows normalized unit prices on Costco and highlights the cheapest and second-cheapest search results.
 // @match        https://www.costco.com/*
 // @match        https://sameday.costco.com/*
@@ -36,7 +36,8 @@
             font-weight: 700 !important;
             line-height: 1.2 !important;
             position: relative !important;
-            z-index: 9999 !important;
+            z-index: auto !important;
+            pointer-events: none !important;
         }
 
         .${WINNER_CLASS} {
@@ -113,44 +114,51 @@
     }
 
     /******************************************************************
-     * LIQUID DETECTION
+     * PLAIN-OUNCE DISAMBIGUATION
+     *
+     * Explicit fluid units (fl oz, ml, L, gal) are always volume.
+     * A bare "oz" is weight by default. Only reinterpret it as fluid
+     * ounces when the product text gives strong evidence that the item
+     * itself is a liquid.
+     *
+     * This intentionally does NOT use broad words such as "coffee",
+     * "tea", "creamer", "drink", "sauce", or "dressing". Those can
+     * describe powders, beans, leaves, concentrates, or other products
+     * whose package ounces are weight.
      ******************************************************************/
 
-    function isLikelyLiquid(text) {
+    function shouldTreatPlainOzAsVolume(text) {
         const t =
             cleanText(text).toLowerCase();
 
-        const liquidWords = [
-            'juice',
-            'beverage',
-            'drink',
-            'shot',
-            'shots',
-            'lemonade',
-            'limeade',
-            'smoothie',
-            'water',
-            'soda',
-            'cola',
-            'sparkling',
-            'tea',
-            'coffee',
-            'milk',
-            'creamer',
-            'kombucha',
-            'nectar',
-            'punch',
-            'broth',
-            'stock',
-            'vinegar',
-            'oil',
-            'syrup',
-            'sauce',
-            'dressing',
+        const strongLiquidPatterns = [
+            /\bjuice\b/,
+            /\blemonade\b/,
+            /\blimeade\b/,
+            /\bsmoothie\b/,
+            /\bwater\b/,
+            /\bsoda\b/,
+            /\bcola\b/,
+            /\bkombucha\b/,
+            /\bnectar\b/,
+            /\bpunch\b/,
+            /\bbroth\b/,
+            /\bstock\b/,
+            /\bvinegar\b/,
+            /\bcooking oil\b/,
+            /\bolive oil\b/,
+            /\bavocado oil\b/,
+            /\bvegetable oil\b/,
+            /\bcanola oil\b/,
+            /\bliquid detergent\b/,
+            /\bliquid laundry detergent\b/,
+            /\bliquid dish(?:washer)? detergent\b/,
+            /\b(?:dairy|oat|almond|soy|whole|skim|lowfat|nonfat) milk\b/,
+            /\bmilk,?\s*\d/,
         ];
 
-        return liquidWords.some(
-            word => t.includes(word)
+        return strongLiquidPatterns.some(
+            pattern => pattern.test(t)
         );
     }
 
@@ -370,6 +378,46 @@
     }
 
     /******************************************************************
+     * DISCRETE SINGLE-USE UNITS
+     *
+     * Some products have both a per-piece weight/volume and a package
+     * count, but the useful comparison is the price of one discrete unit:
+     *
+     *   32 single-serving sticks, 0.21 oz each  -> 32 ea
+     *   20 protein bars, 2.1 oz each            -> 20 ea
+     *   80 coffee pods                           -> 80 ea
+     *
+     * Do NOT apply this to ordinary multipacks such as cans, bottles,
+     * bags, or boxes, where total weight/volume is usually more useful.
+     ******************************************************************/
+
+    function isDiscreteCountProduct(text) {
+        const t =
+            cleanText(text).toLowerCase();
+
+        const discretePatterns = [
+            /\bsingle[\s-]*serv(?:e|ing)\b/,
+            /\bsticks?\b/,
+            /\bpackets?\b/,
+            /\bpods?\b/,
+            /\bpacs?\b/,
+            /\bcapsules?\b/,
+            /\bbars?\b/,
+            /\bpouches?\b/,
+            /\bsachets?\b/,
+            /\btablets?\b/,
+            /\btabs?\b/,
+            /\bwipes?\b/,
+            /\bsheets?\b/,
+            /\bpieces?\b/,
+        ];
+
+        return discretePatterns.some(
+            pattern => pattern.test(t)
+        );
+    }
+
+    /******************************************************************
      * PACKAGE PARSER
      ******************************************************************/
 
@@ -377,11 +425,31 @@
         const t =
             cleanText(text).toLowerCase();
 
-        const liquid =
-            isLikelyLiquid(t);
+        const plainOzIsVolume =
+            shouldTreatPlainOzAsVolume(t);
 
         const countInfo =
             extractCountInfo(t);
+
+        /*
+         * Explicit discrete-use packaging takes precedence over
+         * per-piece weight or volume.
+         */
+        if (
+            countInfo &&
+            isDiscreteCountProduct(t)
+        ) {
+            return {
+                amount:
+                    countInfo.amount,
+
+                unit:
+                    'each',
+
+                source:
+                    countInfo.source,
+            };
+        }
 
         const unitPattern =
             '(fl\\s*oz|oz|lbs?|lb|kg|g|ml|liters?|litres?|l|gallons?|gal)';
@@ -439,7 +507,7 @@
 
                 if (
                     unit === 'oz' &&
-                    liquid
+                    plainOzIsVolume
                 ) {
                     unit = 'floz';
                 }
@@ -488,7 +556,7 @@
 
             if (
                 unit === 'oz' &&
-                liquid
+                plainOzIsVolume
             ) {
                 unit = 'floz';
             }
@@ -536,7 +604,7 @@
 
             if (
                 unit === 'oz' &&
-                liquid
+                plainOzIsVolume
             ) {
                 unit = 'floz';
             }
@@ -676,7 +744,7 @@
 
             if (
                 unit === 'oz' &&
-                liquid
+                plainOzIsVolume
             ) {
                 unit = 'floz';
             }
@@ -1133,7 +1201,8 @@
 
                     if (badge) {
                         badge.textContent =
-                            `🏆 ${formatUnitPrice(product)}`;
+                            `🏆 Cheapest ${product.dimension}: ` +
+                            formatUnitPrice(product);
                     }
 
                     continue;
@@ -1156,7 +1225,8 @@
 
                     if (badge) {
                         badge.textContent =
-                            `🥈 ${formatUnitPrice(product)}`;
+                            `🥈 2nd ${product.dimension}: ` +
+                            formatUnitPrice(product);
                     }
                 }
             }
